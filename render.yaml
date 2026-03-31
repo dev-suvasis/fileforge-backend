@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: fileforge
+    runtime: python
+    buildCommand: |
+      apt-get update && apt-get install -y libreoffice poppler-utils --no-install-recommends
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate --noinput
+    startCommand: gunicorn fileforge.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --log-level info
+    healthCheckPath: /health/
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ""           # Render auto-fills RENDER_EXTERNAL_HOSTNAME; leave blank
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://yourdomain.com"   # change to your frontend URL
+      - key: PYTHON_VERSION
+        value: "3.11.0"
