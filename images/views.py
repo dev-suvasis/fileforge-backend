@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from .services.processor import convert_image, SUPPORTED_FORMATS
 from .services.image_to_pdf import image_to_pdf
 from .services.pdf_to_image import pdf_to_image
+from .services.compressor import compress_image, COMPRESSIBLE_FORMATS
 
 UPLOAD_DIR = os.path.join(settings.BASE_DIR, 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -179,4 +180,62 @@ def pdf_to_image_view(request):
 
     except Exception as e:
         _cleanup(input_path, *output_files)
+        return Response({'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+def compress_image_view(request):
+    """
+    Compress an image using a named compression level.
+
+    Form fields:
+      file  – image file (jpg, jpeg, png, webp)
+      level – compression level: 'mild' (quality 70–85) or 'heavy' (quality 30–50)
+
+    Supported formats: jpg, jpeg, webp, png
+    Note: PNG is lossless — compression reduces file size via deflate, not quality loss.
+    """
+    file = request.FILES.get('file')
+    level = request.data.get('level', '').strip().lower()
+
+    if not file:
+        return Response({'error': 'file is required'}, status=400)
+    if level not in ('mild', 'heavy'):
+        return Response({'error': "level is required and must be 'mild' or 'heavy'"}, status=400)
+
+    input_ext = os.path.splitext(file.name)[1].lower().lstrip('.')
+    if input_ext not in COMPRESSIBLE_FORMATS:
+        return Response(
+            {'error': f"Compression not supported for format: {input_ext}. "
+                      f"Supported: {', '.join(COMPRESSIBLE_FORMATS)}"},
+            status=400
+        )
+
+    input_path, _ = _save_upload(file)
+    output_path = None
+
+    try:
+        output_path = compress_image(input_path, level)
+
+        original_size = os.path.getsize(input_path)
+        compressed_size = os.path.getsize(output_path)
+        saved_percent = round((1 - compressed_size / original_size) * 100, 1)
+
+        def _iter_and_cleanup():
+            with open(output_path, 'rb') as fh:
+                yield from fh
+            _cleanup(input_path, output_path)
+
+        response = FileResponse(
+            _iter_and_cleanup(),
+            as_attachment=True,
+            filename=os.path.basename(output_path),
+        )
+        response['X-Original-Size'] = str(original_size)
+        response['X-Compressed-Size'] = str(compressed_size)
+        response['X-Size-Reduction'] = f"{saved_percent}%"
+        return response
+
+    except Exception as e:
+        _cleanup(input_path, output_path)
         return Response({'error': str(e)}, status=500)

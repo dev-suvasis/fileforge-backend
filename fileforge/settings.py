@@ -8,17 +8,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ---------------------------------------------------------------------------
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'unsafe-dev-key-change-me')
 
-DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
-
+# DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
+DEBUG = True
 ALLOWED_HOSTS = [
     h.strip()
-    for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost 127.0.0.1').split()
+    for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost 127.0.0.1 192.168.0.228 http://192.168.0.228:3000').split()
     if h.strip()
 ]
 
 # Render automatically sets RENDER_EXTERNAL_HOSTNAME
 if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
     ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
+
+print("ALLOWED_HOSTS:", ALLOWED_HOSTS)    
 
 # ---------------------------------------------------------------------------
 # Application definition
