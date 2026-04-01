@@ -12,7 +12,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'unsafe-dev-key-change-me')
 DEBUG = True
 ALLOWED_HOSTS = [
     h.strip()
-    for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'https://fileforge-six.vercel.app/fileforge/ localhost 127.0.0.1 192.168.0.228 http://192.168.0.228:3000').split()
+    for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'https://fileforge-six.vercel.app/fileforge localhost 127.0.0.1 192.168.0.228 http://192.168.0.228:3000').split()
     if h.strip()
 ]
 
